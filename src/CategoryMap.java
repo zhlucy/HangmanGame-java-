@@ -360,7 +360,7 @@ public class CategoryMap implements Serializable {
         if (string.length() == 0 || string.length() > 105) {
             return false;
         }
-        String[] words = string.split(" ");
+        String[] words = string.split("\\s+");
         if (words.length == 0) {
             return false;
         }

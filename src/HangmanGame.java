@@ -171,7 +171,7 @@ public class HangmanGame {
      * @param answer
      */
     public void makeAnswerArray(String answer) {
-        String[] splitAnswer = answer.split(" ");
+        String[] splitAnswer = answer.split("\\s+");
         int start = 0;
         int end = 0;
         int totalLen = 0;
