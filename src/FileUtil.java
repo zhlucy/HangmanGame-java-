@@ -1,13 +1,14 @@
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 public class FileUtil {
-    //Serialization related code are from CS 61B
-
+    /**
+     * Make directory.
+     * @param path
+     */
     public static void makeDir(String path) {
         File dir = new File(path);
         if (!dir.exists()) {
@@ -15,6 +16,10 @@ public class FileUtil {
         }
     }
 
+    /**
+     * Reads file line by line and returns a list.
+     * @param f
+     */
     public static List<String> readFile(File f) {
         try {
             return Files.readAllLines(f.toPath());
@@ -24,6 +29,11 @@ public class FileUtil {
         return new ArrayList<>();
     }
 
+    /**
+     * Writes content to file
+     * @param f
+     * @param content
+     */
     public static void writeFile(File f, String content) {
         f.setWritable(true);
         if (!f.exists()) {
@@ -41,6 +51,11 @@ public class FileUtil {
         f.setWritable(false);
     }
 
+    /**
+     * Writes list to file.
+     * @param f
+     * @param words
+     */
     public static void writeFile(File f, List<String> words) {
         String content = "";
         for (String word : words) {
@@ -49,6 +64,10 @@ public class FileUtil {
         writeFile(f, content);
     }
 
+    /**
+     * Joins and returns strings with file separators.
+     * @param s
+     */
     public static String join(String ...s) {
         String path = "";
         for (String word : s) {
@@ -57,7 +76,7 @@ public class FileUtil {
         return path;
     }
 
-    //Serialization
+    //Serialization (From CS 61B)
 
     /** Serialize it and save it. */
     static void save(Serializable obj, String name) {

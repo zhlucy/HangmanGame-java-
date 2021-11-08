@@ -5,7 +5,7 @@ public class CountDownTimer {
     Timer timer;
     HangmanGame game;
 
-    public CountDownTimer(int sec, HangmanGame g) {
+    public CountDownTimer(HangmanGame g) {
         game = g;
         timer = new Timer();
         timer.schedule(new DisplayRemainSec(g), 0, 1000);

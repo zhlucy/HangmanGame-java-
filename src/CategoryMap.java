@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.function.BiConsumer;
 
 public class CategoryMap implements Serializable {
     private HashMap<String, List<String>> categories;
@@ -12,11 +13,14 @@ public class CategoryMap implements Serializable {
     public CategoryMap(Random r) {
         categories = new HashMap<>();
         names = new ArrayList<>();
-        //Add default sports category (maybe not)
-        //add("SPORTS", "SPORTS.txt");
+        //Add default sports category
+        File f = new File(FileUtil.join("wordbank", "SPORTS.txt"));
+        addFromFile("SPORTS", f);
     }
 
-    // Category Custom Word Bank
+    /**
+     * Displays screen for delete category and delete category after user presses "1"
+     */
     public void deleteCategory() {
         String category = "";
         while (true) {
@@ -25,8 +29,8 @@ public class CategoryMap implements Serializable {
                 Character key = Character.toUpperCase(StdDraw.nextKeyTyped());
                 switch (key) {
                     case '1': //enter
-                        if (category.length() > 0) { //think abt this
-                            delete(category);
+                        if (category.length() > 0) {
+                            remove(category);
                         }
                         category = "";
                         break;
@@ -44,34 +48,36 @@ public class CategoryMap implements Serializable {
         }
     }
 
-    private void delete(String category) {
-        if (!categories.containsKey(category)) {
-            System.out.println("Not an existing category.");
-        } else {
-            categories.remove(category);
-            names.remove(category);
-        }
-    }
-
+    /**
+     * Displays add category screen with two options: add via manual type or via file.
+     */
     public void addCategory() {
-        Screen.addCategoryScreen();
         while (true) {
+            Screen.addCategoryScreen();
             if (StdDraw.hasNextKeyTyped()) {
                 Character key = StdDraw.nextKeyTyped();
+                if (categories.size() == 9) {
+                    Screen.maxCategoryScreen();
+                    return;
+                }
                 switch (key) {
                     case '1': //type
                         strAddCategory();
-                        return;
+                        break;
                     case '2': //file
                         fileAddCategory();
+                        break;
+                    case '0':
                         return;
                 }
             }
         }
     }
 
+    /**
+     * Adds category via file
+     */
     private void fileAddCategory() {
-        // file must exist inside Hangman/wordbank Folder, only txt supported, also when user enter exclude .txt, case sensitive filename
         String category = "";
         String fileName = "";
         boolean categoryEntered = false;
@@ -82,11 +88,10 @@ public class CategoryMap implements Serializable {
                 switch (key) {
                     case '1': //enter
                         if (!categoryEntered && category.length() > 0) {
-                            if (categories.containsKey(category)) {
-                                System.out.println("Existing category.");
-                                category = "";
-                            } else {
+                            if (validCat(category)) {
                                 categoryEntered = true;
+                            } else {
+                                category = "";
                             }
                         } else if (fileName.length() > 0){
                             File f = new File(FileUtil.join("wordbank", fileName));
@@ -112,35 +117,42 @@ public class CategoryMap implements Serializable {
                                 category += key.toString().toUpperCase();
                             }
                         } else {
-                            fileName += key.toString().toUpperCase();
+                            fileName += key.toString();
                         }
                 }
             }
         }
     }
 
+    /**
+     * Adds words from file to category.
+     * @param category
+     * @param f
+     * @return
+     */
     private boolean addFromFile(String category, File f) {
         if (f.exists()) {
             List<String> words = FileUtil.readFile(f);
             if (words.size() == 0 || !goodWordBank(words)) {
-                System.out.println("Invalid word bank."); //change
+                Screen.errorMessage("Invalid word bank");
                 return false;
             } else {
-                categories.put(category, words);
-                names.add(category);
+                add(category, words);
                 f.delete();
                 return true;
             }
         } else {
-            System.out.println("File does not exist."); //change later
+            Screen.errorMessage("File does not exist.");
             return false;
         }
     }
 
+    /**
+     * Adds category via manual type.
+     */
     private void strAddCategory() {
         String category = "";
         String word = "";
-        ArrayList<String> words = new ArrayList<>();
         boolean categoryEntered = false;
         while (true) {
             Screen.strAddCatScreen(category, word);
@@ -149,14 +161,13 @@ public class CategoryMap implements Serializable {
                 switch (key) {
                     case '1':
                         if (!categoryEntered && category.length() > 0) {
-                            if (categories.containsKey(category)) {
-                                System.out.println("Existing category.");
-                                category = "";
-                            } else {
+                            if (validCat(category)) {
                                 categoryEntered = true;
+                            } else {
+                                category = "";
                             }
                         } else if (word.length() > 0) {
-                            addWord(words, word);
+                            addWord(category, word);
                             word = "";
                         }
                         break;
@@ -168,10 +179,6 @@ public class CategoryMap implements Serializable {
                         }
                         break;
                     case '0':
-                        if (categoryEntered && words.size() > 0) {
-                            categories.put(category, words);
-                            names.add(category);
-                        }
                         return;
                     default:
                         if (Character.isAlphabetic(key) || key == ' ') {
@@ -180,36 +187,83 @@ public class CategoryMap implements Serializable {
                             } else {
                                 word += key.toString();
                             }
-                            Screen.strAddCatScreen(category, word);
                         }
                 }
             }
         }
     }
 
+    /**
+     * Returns true if category is at most 20 characters and does not exist yet.
+     * @param category
+     */
+    private boolean validCat(String category) {
+        if (category.length() > 20) {
+            Screen.errorMessage("Category name is over 20 characters.");
+            return false;
+        }
+        else if (categories.containsKey(category)) {
+            Screen.errorMessage("Existing category.");
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Displays menu for modifying category: add words or delete words.
+     */
     public void modifyCategory() {
-        Screen.modifyCatScreen();
         while (true) {
+            Screen.modifyCatScreen();
             if (StdDraw.hasNextKeyTyped()) {
                 Character key = StdDraw.nextKeyTyped();
                 switch (key) {
                     case '1': //type
                         addWords();
-                        return;
+                        break;
                     case '2': //file
                         delWords();
+                        break;
+                    case '0':
                         return;
                 }
             }
         }
     }
 
+    /**
+     * Add words to category.
+     */
     public void addWords() {
+        modifyWords(true, false);
+    }
+
+    /**
+     * Delete words from category
+     */
+    private void delWords() {
+        modifyWords(false, true);
+    }
+
+    /**
+     * Serves as a template for modifying words. If add is true, then use this to add words to category. If del is true,
+     * then use this to delete words.
+     */
+    public void modifyWords(boolean add, boolean del) {
+        BiConsumer<String, String> displayScreen;
+        BiConsumer<String, String> modify;
+        if (add) {
+            displayScreen = Screen::addWordScreen;
+            modify = this::addWord;
+        } else {
+            displayScreen = Screen::delWordScreen;
+            modify = this::delWord;
+        }
         String category = "";
         String word = "";
         boolean categoryEntered = false;
         while (true) {
-            Screen.addWordScreen(category, word);
+            displayScreen.accept(category, word);
             if (StdDraw.hasNextKeyTyped()) {
                 Character key = Character.toUpperCase(StdDraw.nextKeyTyped());
                 switch (key) {
@@ -218,10 +272,11 @@ public class CategoryMap implements Serializable {
                             if (categories.containsKey(category)) {
                                 categoryEntered = true;
                             } else {
+                                Screen.errorMessage("Not an existing category");
                                 category = "";
                             }
                         } else if (word.length() > 0) {
-                            addWord(categories.get(category), word);
+                            modify.accept(category, word);
                             word = "";
                         }
                         break;
@@ -241,68 +296,52 @@ public class CategoryMap implements Serializable {
                             } else {
                                 word += key.toString();
                             }
-                            Screen.addWordScreen(category, word);
                         }
                 }
             }
         }
     }
 
-    //is there a way to combine addWords and delWords (actually all of them are pretty similar in structure)
-    public void delWords() {
-        String category = "";
-        String word = "";
-        boolean categoryEntered = false;
-        while (true) {
-            Screen.delWordScreen(category, word);
-            if (StdDraw.hasNextKeyTyped()) {
-                Character key = Character.toUpperCase(StdDraw.nextKeyTyped());
-                switch (key) {
-                    case '1':
-                        if (!categoryEntered && category.length() > 0) {
-                            if (categories.containsKey(category)) {
-                                categoryEntered = true;
-                            } else {
-                                category = "";
-                            }
-                        } else if (word.length() > 0) {
-                            delWord(categories.get(category), word);
-                            word = "";
-                        }
-                        break;
-                    case '2':
-                        if (!categoryEntered) {
-                            category = "";
-                        } else {
-                            word = "";
-                        }
-                        break;
-                    case '0':
-                        return;
-                    default:
-                        if (Character.isAlphabetic(key) || key == ' ') {
-                            if (!categoryEntered) {
-                                category += key.toString();
-                            } else {
-                                word += key.toString();
-                            }
-                            Screen.delWordScreen(category, word);
-                        }
-                }
+    /**
+     * Deletes word from category.
+     * @param category
+     * @param word
+     */
+    private void delWord(String category, String word) {
+        List<String> lst = categories.get(category);
+        if (!lst.remove(word)) {
+            Screen.errorMessage("Not an existing word");
+        }
+        if (lst.size() == 0) {
+            remove(category);
+            Screen.errorMessage("Category removed because it contains no words");
+        }
+    }
+
+    /**
+     * Adds word to list.
+     */
+    private void addWord(String category, String word) {
+        if (!categories.containsKey(category)) {
+            add(category, new ArrayList<>());
+        }
+
+        List<String> lst = categories.get(category);
+
+        if (!lst.contains(word)) {
+            if (validWord(word)) {
+                lst.add(word);
+            } else {
+                Screen.errorMessage("Invalid word");
             }
         }
     }
 
-    private void delWord(List<String> lst, String word) {
-        lst.remove(word);
-    }
-
-    private void addWord(List<String> lst, String word) {
-        if (!lst.contains(word) && validWord(word)) {
-            lst.add(word);
-        }
-    }
-
+    /**
+     * Returns true if all words in word bank are valid.
+     * @param words
+     * @return
+     */
     private static boolean goodWordBank(List<String> words) {
         for (String word : words) {
             if (!validWord(word)) {
@@ -312,13 +351,20 @@ public class CategoryMap implements Serializable {
         return true;
     }
 
-    private static boolean validWord(String word) {
-        //input can have phrases, but no words more than 20 letters, and cannot have punctuations or numbers
-        if (word.length() == 0) {
+    /**
+     * Returns true if string is at most 105 characters, contains only alphabets, and each word is at most 20 characters.
+     * @param string
+     * @return
+     */
+    private static boolean validWord(String string) {
+        if (string.length() == 0 || string.length() > 105) {
             return false;
         }
-
-        for (String ind : word.split(" ")) {
+        String[] words = string.split(" ");
+        if (words.length == 0) {
+            return false;
+        }
+        for (String ind : words) {
             if (ind.length() > 20 || !HangmanGame.isAlpha(ind)) {
                 return false;
             }
@@ -326,16 +372,51 @@ public class CategoryMap implements Serializable {
         return true;
     }
 
+    /**
+     * Returns category name at index i.
+     * @param i
+     */
     public String getCategory(int i) {
-        return names.get(i);
+        return names.get(i - 1);
     }
 
-    public ArrayList<String> getWords(String name) {
-        return new ArrayList<>(categories.get(name));
+    /**
+     * Returns the list of words for category.
+     * @param category
+     * @return
+     */
+    public ArrayList<String> getWords(String category) {
+        return new ArrayList<>(categories.get(category));
     }
 
+    /**
+     * Returns number of categories.
+     * @return
+     */
     public int size() {
         return categories.size();
     }
 
+    /**
+     * Adds category with its word list.
+     * @param category
+     * @param words
+     */
+    public void add(String category, List<String> words) {
+        categories.put(category, words);
+        names.add(category);
+    }
+
+    /**
+     * Remove category.
+     * @param category
+     */
+    public void remove(String category) {
+        if (!categories.containsKey(category)) {
+            Screen.errorMessage("Not an existing category");
+        } else {
+            categories.remove(category);
+            names.remove(category);
+        }
+    }
 }
